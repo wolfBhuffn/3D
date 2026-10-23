@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Wolf SaByter - 3D Interactive Turntable Asset</title>
+  <title>Wolf SaByter - Dynamic 3D Interactive Turntable Asset</title>
   <style>
     * {
       box-sizing: border-box;
@@ -31,7 +31,6 @@
       align-items: center;
     }
 
-    /* Clean Card Container with Subtle Bounded Tilt */
     .TerminalAvatarWidget {
       width: 360px;
       height: 480px;
@@ -77,9 +76,11 @@
       transform: translateZ(10px);
       background-image: radial-gradient(circle at 50% 50%, rgba(197, 31, 48, 0.12) 0%, transparent 70%);
       overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
 
-    /* Perfect Dead-Center Alignment for the 3D Model Frames */
     .sculpture-asset {
       position: absolute;
       top: 50%;
@@ -99,6 +100,15 @@
     .sculpture-asset.active {
       opacity: 1;
       visibility: visible;
+    }
+
+    .loading-overlay {
+      position: absolute;
+      color: #D69A42;
+      font-size: 11px;
+      letter-spacing: 1px;
+      z-index: 10;
+      pointer-events: none;
     }
 
     .box-footer {
@@ -133,133 +143,91 @@
       
       <div class="box-header">
         <span>ASSET // WOLF_SABYTER</span>
-        <span class="system-status">● CORE_CONNECTED</span>
+        <span class="system-status" id="coreStatus">● LOADING_MANIFEST</span>
       </div>
 
       <div class="image-viewport" id="viewport">
-        <!-- Sequence frames injected dynamically -->
+        <div class="loading-overlay" id="loadingText">PARSING MANIFEST...</div>
       </div>
 
       <div class="box-footer">
-        <span class="angle-tag" id="angleLabel">FRAME: 001 // VIEW: LEFT PROFILE</span>
-        <span id="coordinatesDisplay">SYS.LOC: NY_BRONX_26 // INDEX: 1 / 50</span>
+        <span class="angle-tag" id="angleLabel">FRAME: --- // VIEW: INITIALIZING</span>
+        <span id="coordinatesDisplay">SYS.LOC: NY_BRONX_26 // MANIFEST SYNC</span>
       </div>
 
-    </div>
-  </div>
 
-  <script>
-    // Full continuous 50-frame sequence extracted directly from your manifest
-    const FRAME_SEQUENCE = [
-      { id: 1, file: 'wolf_frames/by_view/05_left-profile/f001_left-profile_t00.00s.png', label: 'LEFT PROFILE' },
-      { id: 2, file: 'wolf_frames/by_view/05_left-profile/f002_left-profile_t02.25s.png', label: 'LEFT PROFILE' },
-      { id: 3, file: 'wolf_frames/by_view/03_three-quarter-left/f003_three-quarter-left_t02.50s.png', label: 'THREE-QUARTER LEFT' },
-      { id: 4, file: 'wolf_frames/by_view/02_front/f004_front_t02.75s.png', label: 'FRONT' },
-      { id: 5, file: 'wolf_frames/by_view/02_front/f005_front_t03.00s.png', label: 'FRONT' },
-      { id: 6, file: 'wolf_frames/by_view/04_three-quarter-right/f006_three-quarter-right_t03.25s.png', label: 'THREE-QUARTER RIGHT' },
-      { id: 7, file: 'wolf_frames/by_view/06_right-profile-with-base/f007_right-profile-with-base_t03.50s.png', label: 'RIGHT PROFILE W/ BASE' },
-      { id: 8, file: 'wolf_frames/by_view/07_rear-three-quarter-right/f008_rear-three-quarter-right_t03.75s.png', label: 'REAR THREE-QUARTER' },
-      { id: 9, file: 'wolf_frames/by_view/07_rear-three-quarter-right/f009_rear-three-quarter-right_t04.00s.png', label: 'REAR THREE-QUARTER' },
-      { id: 10, file: 'wolf_frames/by_view/07_rear-three-quarter-right/f010_rear-three-quarter-right_t04.25s.png', label: 'REAR THREE-QUARTER' },
-      { id: 11, file: 'wolf_frames/by_view/07_rear-three-quarter-right/f011_rear-three-quarter-right_t04.50s.png', label: 'REAR THREE-QUARTER' },
-      { id: 12, file: 'wolf_frames/by_view/07_rear-three-quarter-right/f012_rear-three-quarter-right_t04.75s.png', label: 'REAR THREE-QUARTER' },
-      { id: 13, file: 'wolf_frames/by_view/07_rear-three-quarter-right/f013_rear-three-quarter-right_t05.25s.png', label: 'REAR THREE-QUARTER' },
-      { id: 14, file: 'wolf_frames/by_view/07_rear-three-quarter-right/f014_rear-three-quarter-right_t05.50s.png', label: 'REAR THREE-QUARTER' },
-      { id: 15, file: 'wolf_frames/by_view/07_rear-three-quarter-right/f015_rear-three-quarter-right_t05.75s.png', label: 'REAR THREE-QUARTER' },
-      { id: 16, file: 'wolf_frames/by_view/08_back/f016_back_t06.00s.png', label: 'BACK' },
-      { id: 17, file: 'wolf_frames/by_view/08_back/f017_back_t06.25s.png', label: 'BACK' },
-      { id: 18, file: 'wolf_frames/by_view/08_back/f018_back_t06.50s.png', label: 'BACK' },
-      { id: 19, file: 'wolf_frames/by_view/08_back/f019_back_t06.75s.png', label: 'BACK' },
-      { id: 20, file: 'wolf_frames/by_view/08_back/f020_back_t07.00s.png', label: 'BACK' },
-      { id: 21, file: 'wolf_frames/by_view/08_back/f021_back_t07.25s.png', label: 'BACK' },
-      { id: 22, file: 'wolf_frames/by_view/08_back/f022_back_t07.50s.png', label: 'BACK' },
-      { id: 23, file: 'wolf_frames/by_view/08_back/f023_back_t07.75s.png', label: 'BACK' },
-      { id: 24, file: 'wolf_frames/by_view/08_back/f024_back_t08.00s.png', label: 'BACK' },
-      { id: 25, file: 'wolf_frames/by_view/08_back/f025_back_t08.25s.png', label: 'BACK' },
-      { id: 26, file: 'wolf_frames/by_view/08_back/f026_back_t09.25s.png', label: 'BACK' },
-      { id: 27, file: 'wolf_frames/by_view/08_back/f027_back_t09.50s.png', label: 'BACK' },
-      { id: 28, file: 'wolf_frames/by_view/08_back/f028_back_t09.75s.png', label: 'BACK' },
-      { id: 29, file: 'wolf_frames/by_view/07_rear-three-quarter-right/f029_rear-three-quarter-right_t10.00s.png', label: 'REAR THREE-QUARTER' },
-      { id: 30, file: 'wolf_frames/by_view/06_right-profile-with-base/f030_right-profile-with-base_t10.25s.png', label: 'RIGHT PROFILE W/ BASE' },
-      { id: 31, file: 'wolf_frames/by_view/04_three-quarter-right/f031_three-quarter-right_t10.50s.png', label: 'THREE-QUARTER RIGHT' },
-      { id: 32, file: 'wolf_frames/by_view/02_front/f032_front_t10.75s.png', label: 'FRONT' },
-      { id: 33, file: 'wolf_frames/by_view/02_front/f033_front_t11.00s.png', label: 'FRONT' },
-      { id: 34, file: 'wolf_frames/by_view/02_front/f034_front_t11.25s.png', label: 'FRONT' },
-      { id: 35, file: 'wolf_frames/by_view/02_front/f035_front_t12.25s.png', label: 'FRONT' },
-      { id: 36, file: 'wolf_frames/by_view/02_front/f036_front_t12.50s.png', label: 'FRONT' },
-      { id: 37, file: 'wolf_frames/by_view/02_front/f037_front_t12.75s.png', label: 'FRONT' },
-      { id: 38, file: 'wolf_frames/by_view/02_front/f038_front_t13.00s.png', label: 'FRONT' },
-      { id: 39, file: 'wolf_frames/by_view/02_front/f039_front_t13.50s.png', label: 'FRONT' },
-      { id: 40, file: 'wolf_frames/by_view/02_front/f040_front_t13.75s.png', label: 'FRONT' },
-      { id: 41, file: 'wolf_frames/by_view/01_front-high-with-base/f041_front-high-with-base_t14.00s.png', label: 'ELEVATED FRONT' },
-      { id: 42, file: 'wolf_frames/by_view/01_front-high-with-base/f042_front-high-with-base_t14.25s.png', label: 'ELEVATED FRONT' },
-      { id: 43, file: 'wolf_frames/by_view/01_front-high-with-base/f043_front-high-with-base_t14.50s.png', label: 'ELEVATED FRONT' },
-      { id: 44, file: 'wolf_frames/by_view/01_front-high-with-base/f044_front-high-with-base_t14.75s.png', label: 'ELEVATED FRONT' },
-      { id: 45, file: 'wolf_frames/by_view/01_front-high-with-base/f045_front-high-with-base_t15.00s.png', label: 'ELEVATED FRONT' },
-      { id: 46, file: 'wolf_frames/by_view/01_front-high-with-base/f046_front-high-with-base_t16.25s.png', label: 'ELEVATED FRONT' },
-      { id: 47, file: 'wolf_frames/by_view/01_front-high-with-base/f047_front-high-with-base_t16.50s.png', label: 'ELEVATED FRONT' },
-      { id: 48, file: 'wolf_frames/by_view/01_front-high-with-base/f048_front-high-with-base_t16.75s.png', label: 'ELEVATED FRONT' },
-      { id: 49, file: 'wolf_frames/by_view/02_front/f049_front_t17.00s.png', label: 'FRONT' },
-      { id: 50, file: 'wolf_frames/by_view/02_front/f050_front_t17.25s.png', label: 'FRONT' }
-    ];
+        // Dynamically build image elements for each frame
+        frameSequence.forEach((item, index) => {
+          const img = document.createElement('img');
+          img.src = item.file;
+          img.alt = item.label;
+          img.className = `sculpture-asset ${index === 0 ? 'active' : ''}`;
+          viewport.appendChild(img);
+          imageElements.push(img);
+        });
 
-    const card = document.getElementById('interactiveCard');
-    const viewport = document.getElementById('viewport');
-    const coordsDisplay = document.getElementById('coordinatesDisplay');
-    const angleLabel = document.getElementById('angleLabel');
+        coreStatus.innerText = '● CORE_CONNECTED';
+        coreStatus.style.color = '#C51F30';
+        isInitialized = true;
 
-    const imageElements = [];
+        updateDisplay(0);
 
-    // Preload all 50 frames into the viewport center
-    FRAME_SEQUENCE.forEach((item, index) => {
-      const img = document.createElement('img');
-      img.src = item.file;
-      img.alt = item.label;
-      img.className = `sculpture-asset ${index === 0 ? 'active' : ''}`;
-      viewport.appendChild(img);
-      imageElements.push(img);
-    });
+      } catch (err) {
+        console.error('Manifest load error:', err);
+        loadingText.innerText = 'MANIFEST SYNC FAILED';
+        coreStatus.innerText = '● ERROR';
+      }
+    }
 
-    let currentActiveIndex = 0;
+    function updateDisplay(index) {
+      if (!isInitialized || frameSequence.length === 0) return;
+
+      imageElements[currentActiveIndex].classList.remove('active');
+      currentActiveIndex = index;
+      imageElements[currentActiveIndex].classList.add('active');
+
+      const currentFrame = frameSequence[currentActiveIndex];
+      angleLabel.innerText = `FRAME: ${String(currentActiveIndex + 1).padStart(3, '0')} // VIEW: ${currentFrame.label}`;
+      coordsDisplay.innerText = `SYS.LOC: NY_BRONX_26 // INDEX: ${currentActiveIndex + 1} / ${frameSequence.length}`;
+    }
 
     function handlePointerMove(e) {
+      if (!isInitialized) return;
+
       const rect = card.getBoundingClientRect();
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
-      // Normalize pointer inside card bounds (0 to 1)
       const normX = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
       const normY = Math.max(-1, Math.min(1, ((clientY - rect.top) / rect.height) * 2 - 1));
 
-      // Limit card tilt strictly to ±6 degrees
+      // Tilt card
       const tiltX = -normY * 6;
       const tiltY = (normX - 0.5) * 12;
       card.style.transform = `rotateX(${tiltX.toFixed(1)}deg) rotateY(${tiltY.toFixed(1)}deg)`;
 
-      // Map horizontal cursor position smoothly across ALL 50 frames
+      // Map cursor position across the dynamic frame sequence length
       const targetIndex = Math.min(
-        FRAME_SEQUENCE.length - 1,
-        Math.floor(normX * FRAME_SEQUENCE.length)
+        frameSequence.length - 1,
+        Math.floor(normX * frameSequence.length)
       );
 
       if (targetIndex !== currentActiveIndex) {
-        imageElements[currentActiveIndex].classList.remove('active');
-        currentActiveIndex = targetIndex;
-        imageElements[currentActiveIndex].classList.add('active');
-
-        const currentFrame = FRAME_SEQUENCE[currentActiveIndex];
-        angleLabel.innerText = `FRAME: ${String(currentFrame.id).padStart(3, '0')} // VIEW: ${currentFrame.label}`;
-        coordsDisplay.innerText = `SYS.LOC: NY_BRONX_26 // INDEX: ${currentActiveIndex + 1} / ${FRAME_SEQUENCE.length}`;
+        updateDisplay(targetIndex);
       }
     }
 
-    // Event hooks
     window.addEventListener('mousemove', handlePointerMove);
     window.addEventListener('touchmove', handlePointerMove);
 
     window.addEventListener('mouseleave', () => {
       card.style.transform = `rotateX(0deg) rotateY(0deg)`;
     });
+
+    // Boot loader
+    initializeDynamicAsset();
   </script>
 </body>
 </html>
+
+// HOLDOOR
