@@ -143,52 +143,99 @@
       
       <div class="box-header">
         <span>ASSET // WOLF_SABYTER</span>
-        <span class="system-status" id="coreStatus">● LOADING_MANIFEST</span>
+        <span class="system-status" id="coreStatus">● INITIALIZING</span>
       </div>
 
       <div class="image-viewport" id="viewport">
-        <div class="loading-overlay" id="loadingText">PARSING MANIFEST...</div>
+        <div class="loading-overlay" id="loadingText">LOADING FRAMES...</div>
       </div>
 
       <div class="box-footer">
         <span class="angle-tag" id="angleLabel">FRAME: --- // VIEW: INITIALIZING</span>
-        <span id="coordinatesDisplay">SYS.LOC: NY_BRONX_26 // MANIFEST SYNC</span>
+        <span id="coordinatesDisplay">SYS.LOC: NY_BRONX_26 // SYNCING</span>
       </div>
 
+    </div>
+  </div>
 
-        // Dynamically build image elements for each frame
-        frameSequence.forEach((item, index) => {
+  <script>
+    const card = document.getElementById('interactiveCard');
+    const viewport = document.getElementById('viewport');
+    const coordsDisplay = document.getElementById('coordinatesDisplay');
+    const angleLabel = document.getElementById('angleLabel');
+    const coreStatus = document.getElementById('coreStatus');
+    const loadingText = document.getElementById('loadingText');
+
+    const BASE_PATH = 'clean_wolf_frames/';
+    
+    // Exact file sequence matching your clean_wolf_frames directory
+    const frameFiles = [
+      "f001_lt_prof_t00.00s.png", "f002_lt_prof_t02.25s.png", "f003_3q_lt_t02.50s.png", 
+      "f004_front_t02.75s.png", "f005_front_t03.00s.png", "f006_3q_rt_t03.25s.png", 
+      "f007_rt_base_t03.50s.png", "f008_rear_3q_rt_t03.75s.png", "f009_rear_3q_rt_t04.00s.png", 
+      "f010_rear_3q_rt_t04.25s.png", "f011_rear_3q_rt_t04.50s.png", "f012_rear_3q_rt_t04.75s.png", 
+      "f013_rear_3q_rt_t05.25s.png", "f014_rear_3q_rt_t05.50s.png", "f015_rear_3q_rt_t05.75s.png", 
+      "f016_back_t06.00s.png", "f017_back_t06.25s.png", "f018_back_t06.50s.png", 
+      "f019_back_t06.75s.png", "f020_back_t07.00s.png", "f021_back_t07.25s.png", 
+      "f022_back_t07.50s.png", "f023_back_t07.75s.png", "f024_back_t08.00s.png", 
+      "f025_back_t08.25s.png", "f026_back_t09.25s.png", "f027_back_t09.50s.png", 
+      "f028_back_t09.75s.png", "f029_rear_3q_rt_t10.00s.png", "f030_rt_base_t10.25s.png", 
+      "f031_3q_rt_t10.50s.png", "f032_front_t10.75s.png", "f033_front_t11.00s.png", 
+      "f034_front_t11.25s.png", "f035_front_t12.25s.png", "f036_front_t12.50s.png", 
+      "f037_front_t12.75s.png", "f038_front_t13.00s.png", "f039_front_t13.50s.png", 
+      "f040_front_t13.75s.png", "f041_front_high_base_t14.00s.png", "f042_front_high_base_t14.25s.png", 
+      "f043_front_high_base_t14.50s.png", "f044_front_high_base_t14.75s.png", 
+      "f045_front_high_base_t15.00s.png", "f046_front_high_base_t16.25s.png"
+    ];
+
+    let imageElements = [];
+    let currentActiveIndex = 0;
+    let isInitialized = false;
+
+    function initializeFolderAssets() {
+      try {
+        let loadedCount = 0;
+
+        frameFiles.forEach((filename, i) => {
           const img = document.createElement('img');
-          img.src = item.file;
-          img.alt = item.label;
-          img.className = `sculpture-asset ${index === 0 ? 'active' : ''}`;
+          img.src = `${BASE_PATH}${filename}`;
+          img.alt = filename;
+          img.className = `sculpture-asset ${i === 0 ? 'active' : ''}`;
+
+          img.onload = () => {
+            loadedCount++;
+            if (loadedCount === 1) {
+              if (loadingText) loadingText.remove();
+              coreStatus.innerText = '● CORE_CONNECTED';
+              coreStatus.style.color = '#C51F30';
+              isInitialized = true;
+              updateDisplay(0);
+            }
+          };
+
           viewport.appendChild(img);
           imageElements.push(img);
         });
 
-        coreStatus.innerText = '● CORE_CONNECTED';
-        coreStatus.style.color = '#C51F30';
-        isInitialized = true;
-
-        updateDisplay(0);
-
       } catch (err) {
-        console.error('Manifest load error:', err);
-        loadingText.innerText = 'MANIFEST SYNC FAILED';
+        console.error('Frame initialization error:', err);
+        if (loadingText) loadingText.innerText = 'FRAME SYNC FAILED';
         coreStatus.innerText = '● ERROR';
       }
     }
 
     function updateDisplay(index) {
-      if (!isInitialized || frameSequence.length === 0) return;
+      if (!isInitialized || imageElements.length === 0) return;
 
       imageElements[currentActiveIndex].classList.remove('active');
       currentActiveIndex = index;
       imageElements[currentActiveIndex].classList.add('active');
 
-      const currentFrame = frameSequence[currentActiveIndex];
-      angleLabel.innerText = `FRAME: ${String(currentActiveIndex + 1).padStart(3, '0')} // VIEW: ${currentFrame.label}`;
-      coordsDisplay.innerText = `SYS.LOC: NY_BRONX_26 // INDEX: ${currentActiveIndex + 1} / ${frameSequence.length}`;
+      const currentFilename = frameFiles[currentActiveIndex];
+      const label = currentFilename.replace(/^\w+_/, '').replace(/\.png$/, '').replace(/_/g, ' ').toUpperCase();
+
+      angleLabel.innerText = `FRAME: ${String(currentActiveIndex + 1).padStart(3, '0')} // VIEW: ${label}`;
+      coordsDisplay.innerText = `SYS.LOC: NY_BRONX_26 // INDEX: ${currentActiveIndex + 1} / ${imageElements.length}`;
     }
 
     function handlePointerMove(e) {
@@ -201,15 +248,13 @@
       const normX = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
       const normY = Math.max(-1, Math.min(1, ((clientY - rect.top) / rect.height) * 2 - 1));
 
-      // Tilt card
       const tiltX = -normY * 6;
       const tiltY = (normX - 0.5) * 12;
       card.style.transform = `rotateX(${tiltX.toFixed(1)}deg) rotateY(${tiltY.toFixed(1)}deg)`;
 
-      // Map cursor position across the dynamic frame sequence length
       const targetIndex = Math.min(
-        frameSequence.length - 1,
-        Math.floor(normX * frameSequence.length)
+        imageElements.length - 1,
+        Math.floor(normX * imageElements.length)
       );
 
       if (targetIndex !== currentActiveIndex) {
@@ -224,10 +269,7 @@
       card.style.transform = `rotateX(0deg) rotateY(0deg)`;
     });
 
-    // Boot loader
-    initializeDynamicAsset();
+    initializeFolderAssets();
   </script>
 </body>
 </html>
-
-// HOLDOOR
