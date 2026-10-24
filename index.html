@@ -168,59 +168,45 @@
 
     const BASE_PATH = 'clean_wolf_frames/';
     
-    // Complete array mapping all 130 frames seamlessly
-    const exactFiles = [
-      // Initial precise frames with custom angle tags
-      "f001_lt_prof_t00.00s.png", "f002_lt_prof_t02.25s.png", "f003_3q_lt_t02.50s.png", "f004_front_t02.75s.png", "f005_front_t03.00s.png", "f006_3q_rt_t03.25s.png", "f007_rt_base_t03.50s.png", "f008_rear_3q_rt_t03.75s.png", "f009_rear_3q_rt_t04.00s.png", "f010_rear_3q_rt_t04.25s.png",
-      "f011_rear_3q_rt_t04.50s.png", "f012_rear_3q_rt_t04.75s.png", "f013_rear_3q_rt_t05.25s.png", "f014_rear_3q_rt_t05.50s.png", "f015_rear_3q_rt_t05.75s.png", "f016_back_t06.00s.png", "f017_back_t06.25s.png", "f018_back_t06.50s.png", "f019_back_t06.75s.png", "f020_back_t07.00s.png",
-      "f021_back_t07.25s.png", "f022_back_t07.50s.png", "f023_back_t07.75s.png", "f024_back_t08.00s.png", "f025_back_t08.25s.png", "f026_back_t09.25s.png", "f027_back_t09.50s.png", "f028_back_t09.75s.png", "f029_rear_3q_rt_t10.00s.png", "f030_rt_base_t10.25s.png",
-      "f031_3q_rt_t10.50s.png", "f032_front_t10.75s.png", "f033_front_t11.00s.png", "f034_front_t11.25s.png", "f035_front_t12.25s.png", "f036_front_t12.50s.png", "f037_front_t12.75s.png", "f038_front_t13.00s.png", "f039_front_t13.50s.png", "f040_front_t13.75s.png",
-      "f041_front_high_base_t14.00s.png", "f042_front_high_base_t14.25s.png", "f043_front_high_base_t14.50s.png", "f044_front_high_base_t14.75s.png", "f045_front_high_base_t15.00s.png", "f046_front_high_base_t16.25s.png"
-    ];
-
-    // Dynamically append the remaining frames up to 130 to ensure full 360-degree coverage
-    for (let i = 47; i <= 130; i++) {
-      const numStr = String(i).padStart(3, '0');
-      // Matches standard exported sequence pattern for the rest of the turntable frames
-      exactFiles.push(`f${numStr}_rt_base.png`);
-    }
-
     let imageElements = [];
+    let exactFiles = [];
     let currentActiveIndex = 0;
     let isInitialized = false;
 
-    function loadAllFrames() {
-      let loadedCount = 0;
+    async function loadViewer() {
+      try {
+        // Fetch the auto-generated manifest of all frames
+        const response = await fetch('manifest.json');
+        exactFiles = await response.json();
 
-      exactFiles.forEach((filename, i) => {
-        const img = document.createElement('img');
-        img.src = `${BASE_PATH}${filename}`;
-        img.alt = filename;
-        img.className = `sculpture-asset ${i === 0 ? 'active' : ''}`;
+        let loadedCount = 0;
 
-        img.onload = () => {
-          loadedCount++;
-          if (loadedCount === 1) {
-            if (loadingText) loadingText.remove();
-            coreStatus.innerText = '● CORE_CONNECTED';
-            coreStatus.style.color = '#C51F30';
-            isInitialized = true;
-            updateDisplay(0);
-          }
-        };
+        exactFiles.forEach((filename, i) => {
+          const img = document.createElement('img');
+          img.src = `${BASE_PATH}${filename}`;
+          img.alt = filename;
+          img.className = `sculpture-asset ${i === 0 ? 'active' : ''}`;
 
-        // Fallback handler if a specific suffix filename differs slightly
-        img.onerror = () => {
-          // Fallback to standard sequential naming if custom suffix is missing
-          if (!img.src.includes('rt_base')) {
-            const numStr = String(i + 1).padStart(3, '0');
-            img.src = `${BASE_PATH}f${numStr}_rt_base.png`;
-          }
-        };
+          img.onload = () => {
+            loadedCount++;
+            if (loadedCount === 1) {
+              if (loadingText) loadingText.remove();
+              coreStatus.innerText = '● CORE_CONNECTED';
+              coreStatus.style.color = '#C51F30';
+              isInitialized = true;
+              updateDisplay(0);
+            }
+          };
 
-        viewport.appendChild(img);
-        imageElements.push(img);
-      });
+          viewport.appendChild(img);
+          imageElements.push(img);
+        });
+
+      } catch (err) {
+        console.error('Manifest load error:', err);
+        if (loadingText) loadingText.innerText = 'MANIFEST SYNC FAILED';
+        coreStatus.innerText = '● ERROR';
+      }
     }
 
     function updateDisplay(index) {
@@ -268,7 +254,7 @@
       card.style.transform = `rotateX(0deg) rotateY(0deg)`;
     });
 
-    loadAllFrames();
+    loadViewer();
   </script>
 
 </body>
