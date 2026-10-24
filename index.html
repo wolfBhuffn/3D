@@ -166,11 +166,8 @@
     const coreStatus = document.getElementById('coreStatus');
     const loadingText = document.getElementById('loadingText');
 
-    // Base directory path
     const BASE_PATH = 'clean_wolf_frames/';
-    
-    // Total count of flattened frames in your directory
-    const TOTAL_FRAMES = 120; // Adjust this number to match the exact number of frames in clean_wolf_frames
+    const TOTAL_FRAMES = 120; // Change this to your exact total number of frames if needed
 
     let imageElements = [];
     let currentActiveIndex = 0;
@@ -182,9 +179,6 @@
 
         for (let i = 1; i <= TOTAL_FRAMES; i++) {
           const img = document.createElement('img');
-          
-          // Formats image numbers as frame_001.png, frame_002.png, etc.
-          // Adjust file naming pattern below if your flattened images use a different pattern (e.g. `frame_${i}.png`)
           const formattedIndex = String(i).padStart(3, '0');
           img.src = `${BASE_PATH}frame_${formattedIndex}.png`;
           img.alt = `Frame ${formattedIndex}`;
@@ -193,17 +187,12 @@
           img.onload = () => {
             loadedCount++;
             if (loadedCount === 1) {
-              // Hide loading overlay as soon as the first frame is ready
               if (loadingText) loadingText.remove();
               coreStatus.innerText = '● CORE_CONNECTED';
               coreStatus.style.color = '#C51F30';
               isInitialized = true;
               updateDisplay(0);
             }
-          };
-
-          img.onerror = () => {
-            // Silently handle or fallback if frame range exceeds actual files
           };
 
           viewport.appendChild(img);
@@ -239,12 +228,10 @@
       const normX = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
       const normY = Math.max(-1, Math.min(1, ((clientY - rect.top) / rect.height) * 2 - 1));
 
-      // Tilt card 3D perspective
       const tiltX = -normY * 6;
       const tiltY = (normX - 0.5) * 12;
       card.style.transform = `rotateX(${tiltX.toFixed(1)}deg) rotateY(${tiltY.toFixed(1)}deg)`;
 
-      // Map cursor horizontal position across the total frame array
       const targetIndex = Math.min(
         imageElements.length - 1,
         Math.floor(normX * imageElements.length)
@@ -262,8 +249,8 @@
       card.style.transform = `rotateX(0deg) rotateY(0deg)`;
     });
 
-    // Boot asset loader
     initializeFolderAssets();
   </script>
+
 </body>
 </html>
