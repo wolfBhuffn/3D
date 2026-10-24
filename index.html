@@ -167,6 +167,7 @@
     const loadingText = document.getElementById('loadingText');
 
     const BASE_PATH = 'clean_wolf_frames/';
+<<<<<<< HEAD
     
     // Exact file sequence matching your clean_wolf_frames directory
     const frameFiles = [
@@ -187,6 +188,9 @@
       "f043_front_high_base_t14.50s.png", "f044_front_high_base_t14.75s.png", 
       "f045_front_high_base_t15.00s.png", "f046_front_high_base_t16.25s.png"
     ];
+=======
+    const TOTAL_FRAMES = 120; // Change this to your exact total number of frames if needed
+>>>>>>> 7aba9f4709242edcd978278cccf6e1c44781afb7
 
     let imageElements = [];
     let currentActiveIndex = 0;
@@ -196,11 +200,20 @@
       try {
         let loadedCount = 0;
 
+<<<<<<< HEAD
         frameFiles.forEach((filename, i) => {
           const img = document.createElement('img');
           img.src = `${BASE_PATH}${filename}`;
           img.alt = filename;
           img.className = `sculpture-asset ${i === 0 ? 'active' : ''}`;
+=======
+        for (let i = 1; i <= TOTAL_FRAMES; i++) {
+          const img = document.createElement('img');
+          const formattedIndex = String(i).padStart(3, '0');
+          img.src = `${BASE_PATH}frame_${formattedIndex}.png`;
+          img.alt = `Frame ${formattedIndex}`;
+          img.className = `sculpture-asset ${i === 1 ? 'active' : ''}`;
+>>>>>>> 7aba9f4709242edcd978278cccf6e1c44781afb7
 
           img.onload = () => {
             loadedCount++;
@@ -215,7 +228,11 @@
 
           viewport.appendChild(img);
           imageElements.push(img);
+<<<<<<< HEAD
         });
+=======
+        }
+>>>>>>> 7aba9f4709242edcd978278cccf6e1c44781afb7
 
       } catch (err) {
         console.error('Frame initialization error:', err);
@@ -231,10 +248,15 @@
       currentActiveIndex = index;
       imageElements[currentActiveIndex].classList.add('active');
 
+<<<<<<< HEAD
       const currentFilename = frameFiles[currentActiveIndex];
       const label = currentFilename.replace(/^\w+_/, '').replace(/\.png$/, '').replace(/_/g, ' ').toUpperCase();
 
       angleLabel.innerText = `FRAME: ${String(currentActiveIndex + 1).padStart(3, '0')} // VIEW: ${label}`;
+=======
+      const frameNumber = String(currentActiveIndex + 1).padStart(3, '0');
+      angleLabel.innerText = `FRAME: ${frameNumber} // VIEW: TURNTABLE_ROTATE`;
+>>>>>>> 7aba9f4709242edcd978278cccf6e1c44781afb7
       coordsDisplay.innerText = `SYS.LOC: NY_BRONX_26 // INDEX: ${currentActiveIndex + 1} / ${imageElements.length}`;
     }
 
@@ -271,5 +293,6 @@
 
     initializeFolderAssets();
   </script>
+
 </body>
 </html>
