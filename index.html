@@ -143,16 +143,16 @@
       
       <div class="box-header">
         <span>ASSET // WOLF_SABYTER</span>
-        <span class="system-status" id="coreStatus">● LOADING_MANIFEST</span>
+        <span class="system-status" id="coreStatus">● INITIALIZING</span>
       </div>
 
       <div class="image-viewport" id="viewport">
-        <div class="loading-overlay" id="loadingText">PARSING MANIFEST...</div>
+        <div class="loading-overlay" id="loadingText">LOADING FRAMES...</div>
       </div>
 
       <div class="box-footer">
         <span class="angle-tag" id="angleLabel">FRAME: --- // VIEW: INITIALIZING</span>
-        <span id="coordinatesDisplay">SYS.LOC: NY_BRONX_26 // MANIFEST SYNC</span>
+        <span id="coordinatesDisplay">SYS.LOC: NY_BRONX_26 // SYNCING</span>
       </div>
 
     </div>
@@ -166,73 +166,67 @@
     const coreStatus = document.getElementById('coreStatus');
     const loadingText = document.getElementById('loadingText');
 
-    let frameSequence = [];
+    // Base directory path
+    const BASE_PATH = 'clean_wolf_frames/';
+    
+    // Total count of flattened frames in your directory
+    const TOTAL_FRAMES = 120; // Adjust this number to match the exact number of frames in clean_wolf_frames
+
     let imageElements = [];
     let currentActiveIndex = 0;
     let isInitialized = false;
 
-    // Lightweight CSV Parser to fetch and parse manifest.csv on the fly
-    async function initializeDynamicAsset() {
+    function initializeFolderAssets() {
       try {
-        const response = await fetch('wolf_frames/manifest.csv');
-        const csvText = await response.text();
-        const lines = csvText.trim().split('\n');
-        
-        // Skip header row and map rows
-        frameSequence = lines.slice(1).map((line, idx) => {
-          // Handle standard CSV split supporting potential quotes
-          const parts = line.split(',');
-          if (parts.length >= 4) {
-            return {
-              id: idx + 1,
-              order: parts[0].trim(),
-              time_s: parts[1].trim(),
-              view_group: parts[2].trim(),
-              file: 'wolf_frames/' + parts[3].trim(),
-              label: parts[2].trim().replace(/^\d+_/, '').replace(/-/g, ' ').toUpperCase()
-            };
-          }
-          return null;
-        }).filter(Boolean);
+        let loadedCount = 0;
 
-        if (frameSequence.length === 0) throw new Error('Empty manifest');
-
-        // Remove loading text
-        loadingText.remove();
-
-        // Dynamically build image elements for each frame
-        frameSequence.forEach((item, index) => {
+        for (let i = 1; i <= TOTAL_FRAMES; i++) {
           const img = document.createElement('img');
-          img.src = item.file;
-          img.alt = item.label;
-          img.className = `sculpture-asset ${index === 0 ? 'active' : ''}`;
+          
+          // Formats image numbers as frame_001.png, frame_002.png, etc.
+          // Adjust file naming pattern below if your flattened images use a different pattern (e.g. `frame_${i}.png`)
+          const formattedIndex = String(i).padStart(3, '0');
+          img.src = `${BASE_PATH}frame_${formattedIndex}.png`;
+          img.alt = `Frame ${formattedIndex}`;
+          img.className = `sculpture-asset ${i === 1 ? 'active' : ''}`;
+
+          img.onload = () => {
+            loadedCount++;
+            if (loadedCount === 1) {
+              // Hide loading overlay as soon as the first frame is ready
+              if (loadingText) loadingText.remove();
+              coreStatus.innerText = '● CORE_CONNECTED';
+              coreStatus.style.color = '#C51F30';
+              isInitialized = true;
+              updateDisplay(0);
+            }
+          };
+
+          img.onerror = () => {
+            // Silently handle or fallback if frame range exceeds actual files
+          };
+
           viewport.appendChild(img);
           imageElements.push(img);
-        });
-
-        coreStatus.innerText = '● CORE_CONNECTED';
-        coreStatus.style.color = '#C51F30';
-        isInitialized = true;
-
-        updateDisplay(0);
+        }
 
       } catch (err) {
-        console.error('Manifest load error:', err);
-        loadingText.innerText = 'MANIFEST SYNC FAILED';
+        console.error('Frame initialization error:', err);
+        if (loadingText) loadingText.innerText = 'FRAME SYNC FAILED';
         coreStatus.innerText = '● ERROR';
       }
     }
 
     function updateDisplay(index) {
-      if (!isInitialized || frameSequence.length === 0) return;
+      if (!isInitialized || imageElements.length === 0) return;
 
       imageElements[currentActiveIndex].classList.remove('active');
       currentActiveIndex = index;
       imageElements[currentActiveIndex].classList.add('active');
 
-      const currentFrame = frameSequence[currentActiveIndex];
-      angleLabel.innerText = `FRAME: ${String(currentActiveIndex + 1).padStart(3, '0')} // VIEW: ${currentFrame.label}`;
-      coordsDisplay.innerText = `SYS.LOC: NY_BRONX_26 // INDEX: ${currentActiveIndex + 1} / ${frameSequence.length}`;
+      const frameNumber = String(currentActiveIndex + 1).padStart(3, '0');
+      angleLabel.innerText = `FRAME: ${frameNumber} // VIEW: TURNTABLE_ROTATE`;
+      coordsDisplay.innerText = `SYS.LOC: NY_BRONX_26 // INDEX: ${currentActiveIndex + 1} / ${imageElements.length}`;
     }
 
     function handlePointerMove(e) {
@@ -245,15 +239,15 @@
       const normX = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
       const normY = Math.max(-1, Math.min(1, ((clientY - rect.top) / rect.height) * 2 - 1));
 
-      // Tilt card
+      // Tilt card 3D perspective
       const tiltX = -normY * 6;
       const tiltY = (normX - 0.5) * 12;
       card.style.transform = `rotateX(${tiltX.toFixed(1)}deg) rotateY(${tiltY.toFixed(1)}deg)`;
 
-      // Map cursor position across the dynamic frame sequence length
+      // Map cursor horizontal position across the total frame array
       const targetIndex = Math.min(
-        frameSequence.length - 1,
-        Math.floor(normX * frameSequence.length)
+        imageElements.length - 1,
+        Math.floor(normX * imageElements.length)
       );
 
       if (targetIndex !== currentActiveIndex) {
@@ -268,8 +262,8 @@
       card.style.transform = `rotateX(0deg) rotateY(0deg)`;
     });
 
-    // Boot loader
-    initializeDynamicAsset();
+    // Boot asset loader
+    initializeFolderAssets();
   </script>
 </body>
 </html>
