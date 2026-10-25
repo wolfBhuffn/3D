@@ -2,12 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+
   <meta
     name="viewport"
     content="width=device-width, initial-scale=1"
   >
 
-  <title>Wolf SaByter — Interactive Turntable</title>
+  <title>Wolf SaByter — Interactive Frame Viewer</title>
 
   <style>
     * {
@@ -18,7 +19,7 @@
       margin: 0;
       min-height: 100vh;
       min-height: 100svh;
-      padding: 20px;
+      padding: 24px;
       display: grid;
       place-items: center;
       background: #090909;
@@ -31,13 +32,13 @@
     }
 
     .TerminalAvatarWidget {
-      position: relative;
       width: 100%;
       height: 480px;
       padding: 20px;
       display: flex;
       flex-direction: column;
       gap: 16px;
+      position: relative;
       background: linear-gradient(135deg, #121212, #1c1c1c);
       border: 1px solid #77736d;
       border-radius: 8px;
@@ -46,9 +47,9 @@
         0 20px 40px rgba(0, 0, 0, 0.8),
         0 0 15px rgba(214, 154, 66, 0.08);
       transition: transform 100ms cubic-bezier(0.2, 0, 0.2, 1);
+      touch-action: none;
       user-select: none;
       -webkit-user-select: none;
-      touch-action: none;
     }
 
     .box-header {
@@ -56,10 +57,9 @@
       justify-content: space-between;
       flex-wrap: wrap;
       gap: 8px;
-      color: #99958f;
+      color: #aaa59e;
       font-size: 10px;
       letter-spacing: 1px;
-      text-transform: uppercase;
       transform: translateZ(20px);
       pointer-events: none;
     }
@@ -70,7 +70,7 @@
     }
 
     .system-status[data-state="ready"] {
-      color: #e04354;
+      color: #ef5263;
     }
 
     .system-status[data-state="error"] {
@@ -86,8 +86,6 @@
       overflow: hidden;
       display: grid;
       place-items: center;
-      border: 1px dashed #77736d;
-      border-radius: 4px;
       background:
         radial-gradient(
           circle at center,
@@ -95,6 +93,8 @@
           transparent 70%
         ),
         #0d0d0d;
+      border: 1px dashed #77736d;
+      border-radius: 4px;
       transform: translateZ(10px);
       cursor: ew-resize;
     }
@@ -111,15 +111,15 @@
       height: 85%;
       margin: auto;
       object-fit: contain;
-      opacity: 0;
       visibility: hidden;
+      opacity: 0;
       pointer-events: none;
       -webkit-user-drag: none;
     }
 
     .sculpture-asset.active {
-      opacity: 1;
       visibility: visible;
+      opacity: 1;
     }
 
     .loading-overlay {
@@ -128,7 +128,7 @@
       max-width: 90%;
       color: #d69a42;
       font-size: 11px;
-      line-height: 1.6;
+      line-height: 1.7;
       letter-spacing: 1px;
       text-align: center;
       pointer-events: none;
@@ -141,20 +141,37 @@
     .box-footer {
       display: flex;
       flex-direction: column;
-      gap: 5px;
+      gap: 6px;
       color: #d69a42;
       font-size: 10px;
-      text-align: right;
+      line-height: 1.5;
       letter-spacing: 1px;
+      text-align: right;
       overflow-wrap: anywhere;
       transform: translateZ(20px);
       pointer-events: none;
     }
 
     .angle-tag,
+    .source-tag,
     .interaction-hint {
-      color: #99958f;
+      color: #aaa59e;
       font-size: 9px;
+    }
+
+    .load-track {
+      height: 2px;
+      width: 100%;
+      overflow: hidden;
+      background: #303030;
+    }
+
+    .load-fill {
+      width: 100%;
+      height: 100%;
+      background: #d69a42;
+      transform: scaleX(0);
+      transform-origin: left;
     }
 
     @keyframes pulse {
@@ -180,6 +197,7 @@
 
       <div class="box-header">
         <span>ASSET // WOLF_SABYTER</span>
+
         <span
           class="system-status"
           id="coreStatus"
@@ -193,7 +211,7 @@
         id="viewport"
         tabindex="0"
         role="slider"
-        aria-label="Wolf SaByter viewing angle"
+        aria-label="Wolf SaByter frame"
         aria-orientation="horizontal"
         aria-valuemin="1"
         aria-valuemax="1"
@@ -203,9 +221,10 @@
         aria-busy="true"
         aria-describedby="interactionHint"
       >
-        <div class="loading-overlay" id="loadingText">
-          LOADING FRAMES...
-        </div>
+        <div
+          class="loading-overlay"
+          id="loadingText"
+        >LOADING MANIFEST...</div>
       </div>
 
       <div class="box-footer">
@@ -213,12 +232,20 @@
           FRAME: --- // VIEW: INITIALIZING
         </span>
 
+        <span class="source-tag" id="sourceLabel">
+          SOURCE: ---
+        </span>
+
         <span id="coordinatesDisplay">
           SYS.LOC: NY_BRONX_26 // SYNCING
         </span>
 
+        <div class="load-track" aria-hidden="true">
+          <div class="load-fill" id="loadFill"></div>
+        </div>
+
         <span class="interaction-hint" id="interactionHint">
-          HOVER / DRAG TO ROTATE · ← → WHEN FOCUSED
+          HOVER / DRAG TO SCRUB · ← → WHEN FOCUSED
         </span>
       </div>
 
@@ -232,10 +259,12 @@
       const root = document.getElementById("wolfViewer");
       const card = root.querySelector("#interactiveCard");
       const viewport = root.querySelector("#viewport");
-      const coordsDisplay = root.querySelector("#coordinatesDisplay");
-      const angleLabel = root.querySelector("#angleLabel");
       const coreStatus = root.querySelector("#coreStatus");
       const loadingText = root.querySelector("#loadingText");
+      const angleLabel = root.querySelector("#angleLabel");
+      const sourceLabel = root.querySelector("#sourceLabel");
+      const coordsDisplay = root.querySelector("#coordinatesDisplay");
+      const loadFill = root.querySelector("#loadFill");
 
       const BASE_PATH = "clean_wolf_frames/";
       const MANIFEST_PATH = "manifest.json";
@@ -246,45 +275,91 @@
         "(prefers-reduced-motion: reduce)"
       );
 
+      const VIEW_LABELS = {
+        lt_prof: "LEFT PROFILE",
+        "3q_lt": "LEFT THREE-QUARTER",
+        front: "FRONT",
+        "3q_rt": "RIGHT THREE-QUARTER",
+        rt_base: "RIGHT BASE",
+        rear_3q_rt: "REAR RIGHT THREE-QUARTER",
+        back: "BACK",
+        front_high_base: "FRONT HIGH BASE"
+      };
+
       let frames = [];
       let currentIndex = -1;
       let requestedIndex = 0;
       let loadedCount = 0;
       let failedCount = 0;
       let loadingComplete = false;
+
       let activePointerId = null;
-      let animationId = null;
       let pendingPointer = null;
+      let animationId = null;
+
+      function parseFilename(filename, index) {
+        const match = filename.match(
+          /^f(\d+)_(.+)_t(\d+(?:\.\d+)?)s\.png$/i
+        );
+
+        if (!match) {
+          return {
+            number: String(index + 1).padStart(3, "0"),
+            label: filename
+              .replace(/\.[^.]+$/, "")
+              .replace(/_/g, " ")
+              .toUpperCase(),
+            timestamp: null
+          };
+        }
+
+        const [, number, rawViewCode, timestamp] = match;
+        const viewCode = rawViewCode.toLowerCase();
+
+        return {
+          number,
+          label:
+            VIEW_LABELS[viewCode] ||
+            viewCode.replace(/_/g, " ").toUpperCase(),
+          timestamp
+        };
+      }
 
       function setStatus(text, state) {
-        coreStatus.textContent = text;
+        if (coreStatus.textContent !== text) {
+          coreStatus.textContent = text;
+        }
+
         coreStatus.dataset.state = state;
       }
 
-      function getFrameLabel(filename) {
-        return filename
-          .replace(/\.[^.]+$/, "")
-          .replace(/^wolf[_-]/i, "")
-          .replace(/[_-]+/g, " ")
-          .trim()
-          .toUpperCase();
-      }
-
       function updateProgress() {
-        if (currentIndex < 0) {
-          coordsDisplay.textContent =
-            `SYS.LOC: NY_BRONX_26 // LOADED: ${loadedCount} / ${frames.length}`;
-          return;
-        }
+        const total = frames.length;
+        const settled = loadedCount + failedCount;
+        const progress = total ? settled / total : 0;
 
-        const progress = loadingComplete
-          ? `READY: ${loadedCount}/${frames.length}` +
-            (failedCount ? ` // FAILED: ${failedCount}` : "")
-          : `LOADED: ${loadedCount}/${frames.length}`;
+        loadFill.style.transform = `scaleX(${progress})`;
+
+        const frameText = currentIndex >= 0
+          ? `INDEX: ${currentIndex + 1}/${total}`
+          : "SYNCING";
+
+        const loadText = loadingComplete
+          ? `READY: ${loadedCount}/${total}`
+          : `LOADED: ${loadedCount}/${total}`;
+
+        const failureText = failedCount
+          ? ` // FAILED: ${failedCount}`
+          : "";
 
         coordsDisplay.textContent =
-          `SYS.LOC: NY_BRONX_26 // INDEX: ${currentIndex + 1}` +
-          ` / ${frames.length} // ${progress}`;
+          `SYS.LOC: NY_BRONX_26 // ${frameText}` +
+          ` // ${loadText}${failureText}`;
+
+        if (currentIndex < 0 && total) {
+          loadingText.textContent =
+            `LOADING FRAMES... ${settled}/${total}`;
+        }
       }
 
       function showFrame(index) {
@@ -301,11 +376,14 @@
           currentIndex = index;
         }
 
-        const label = getFrameLabel(frame.filename);
+        const { number, label, timestamp } = frame.metadata;
 
         angleLabel.textContent =
-          `FRAME: ${String(index + 1).padStart(3, "0")}` +
-          ` // VIEW: ${label}`;
+          `FRAME: ${number} // VIEW: ${label}`;
+
+        sourceLabel.textContent = timestamp !== null
+          ? `SOURCE: ${timestamp}s`
+          : "SOURCE: ---";
 
         viewport.setAttribute("aria-valuenow", String(index + 1));
         viewport.setAttribute(
@@ -344,16 +422,22 @@
           Math.min(frames.length - 1, index)
         );
 
-        if (frames[requestedIndex].state === "loaded") {
+        const target = frames[requestedIndex];
+
+        if (target.state === "loaded") {
           showFrame(requestedIndex);
-        } else if (
-          currentIndex < 0 ||
-          frames[requestedIndex].state === "failed"
-        ) {
-          const fallback = nearestLoadedIndex(requestedIndex);
-          if (fallback >= 0) showFrame(fallback);
+          return;
         }
-        // Otherwise preserve the current image until the target is ready.
+
+        // Keep the current image while a requested frame loads.
+        // If the target failed, use the closest available frame.
+        if (currentIndex < 0 || target.state === "failed") {
+          const fallback = nearestLoadedIndex(requestedIndex);
+
+          if (fallback >= 0) {
+            showFrame(fallback);
+          }
+        }
       }
 
       function loadFrame(frame, index) {
@@ -381,6 +465,8 @@
               setStatus("● CORE_CONNECTED", "ready");
             } else {
               failedCount++;
+
+              console.warn("Frame failed:", frame.filename);
               requestFrame(requestedIndex);
             }
 
@@ -395,6 +481,7 @@
 
           img.onload = () => finish(true);
           img.onerror = () => finish(false);
+
           img.src = BASE_PATH + frame.filename
             .split("/")
             .map(encodeURIComponent)
@@ -404,7 +491,11 @@
 
       async function loadViewer() {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 15000);
+
+        const manifestTimeout = setTimeout(
+          () => controller.abort(),
+          15000
+        );
 
         try {
           const response = await fetch(MANIFEST_PATH, {
@@ -416,24 +507,24 @@
           }
 
           const filenames = await response.json();
+          clearTimeout(manifestTimeout);
 
           if (
             !Array.isArray(filenames) ||
             filenames.length === 0 ||
             !filenames.every(
-              filename =>
-                typeof filename === "string" &&
-                filename.trim().length > 0
+              name =>
+                typeof name === "string" &&
+                name.trim().length > 0
             )
           ) {
             throw new Error(
-              "Manifest must be a nonempty array of filenames."
+              "Manifest must contain a nonempty array of filenames."
             );
           }
 
-          clearTimeout(timeout);
-
-          frames = filenames.map((filename) => {
+          // Preserve the exact order from manifest.json.
+          frames = filenames.map((filename, index) => {
             const img = document.createElement("img");
 
             img.className = "sculpture-asset";
@@ -445,6 +536,7 @@
 
             return {
               filename,
+              metadata: parseFilename(filename, index),
               element: img,
               state: "pending"
             };
@@ -455,7 +547,12 @@
             String(frames.length)
           );
 
-          let nextIndex = 0;
+          updateProgress();
+
+          // Load the first frame before starting the background queue.
+          await loadFrame(frames[0], 0);
+
+          let nextIndex = 1;
 
           async function worker() {
             while (nextIndex < frames.length) {
@@ -466,7 +563,12 @@
 
           await Promise.all(
             Array.from(
-              { length: Math.min(LOAD_CONCURRENCY, frames.length) },
+              {
+                length: Math.min(
+                  LOAD_CONCURRENCY,
+                  frames.length - 1
+                )
+              },
               () => worker()
             )
           );
@@ -474,8 +576,8 @@
           loadingComplete = true;
           viewport.setAttribute("aria-busy", "false");
 
-          if (!loadedCount) {
-            throw new Error("No frames could be loaded.");
+          if (loadedCount === 0) {
+            throw new Error("All frame images failed to load.");
           }
 
           requestFrame(requestedIndex);
@@ -487,20 +589,25 @@
 
           updateProgress();
         } catch (error) {
-          console.error("Viewer initialization failed:", error);
+          console.error("Wolf viewer error:", error);
 
           loadingText.hidden = false;
           loadingText.textContent =
             "SYNC FAILED — CHECK MANIFEST / FRAME PATHS";
 
           setStatus("● ERROR", "error");
+
           viewport.setAttribute("aria-busy", "false");
           viewport.setAttribute("aria-disabled", "true");
+          viewport.setAttribute(
+            "aria-valuetext",
+            "Frame loading failed"
+          );
 
           coordsDisplay.textContent =
             "SYS.LOC: NY_BRONX_26 // SYNC FAILED";
         } finally {
-          clearTimeout(timeout);
+          clearTimeout(manifestTimeout);
         }
       }
 
@@ -509,15 +616,18 @@
 
         if (!pendingPointer || !frames.length) return;
 
-        // Measure the untransformed wrapper, not the tilting card.
+        // The wrapper remains stationary while the card tilts.
         const rect = root.getBoundingClientRect();
 
-        const x = Math.max(
+        const normX = Math.max(
           0,
-          Math.min(1, (pendingPointer.x - rect.left) / rect.width)
+          Math.min(
+            1,
+            (pendingPointer.x - rect.left) / rect.width
+          )
         );
 
-        const y = Math.max(
+        const normY = Math.max(
           -1,
           Math.min(
             1,
@@ -526,13 +636,19 @@
         );
 
         if (!reducedMotion.matches) {
+          const tiltX = -normY * 6;
+          const tiltY = (normX - 0.5) * 12;
+
           card.style.transform =
-            `rotateX(${(-y * 6).toFixed(1)}deg) ` +
-            `rotateY(${((x - 0.5) * 12).toFixed(1)}deg)`;
+            `rotateX(${tiltX.toFixed(1)}deg) ` +
+            `rotateY(${tiltY.toFixed(1)}deg)`;
         }
 
         requestFrame(
-          Math.min(frames.length - 1, Math.floor(x * frames.length))
+          Math.min(
+            frames.length - 1,
+            Math.floor(normX * frames.length)
+          )
         );
       }
 
@@ -559,10 +675,17 @@
 
       root.addEventListener("pointerdown", (event) => {
         if (!event.isPrimary) return;
-        if (event.pointerType === "mouse" && event.button !== 0) return;
+
+        if (
+          event.pointerType === "mouse" &&
+          event.button !== 0
+        ) {
+          return;
+        }
 
         activePointerId = event.pointerId;
         root.setPointerCapture(event.pointerId);
+
         viewport.focus({ preventScroll: true });
         queuePointer(event);
       });
@@ -570,20 +693,35 @@
       root.addEventListener("pointermove", (event) => {
         if (!event.isPrimary) return;
 
-        const mouseHover =
-          event.pointerType === "mouse" && activePointerId === null;
+        const isMouseHover =
+          event.pointerType === "mouse" &&
+          activePointerId === null;
 
-        if (mouseHover || event.pointerId === activePointerId) {
+        const isActiveDrag =
+          event.pointerId === activePointerId;
+
+        if (isMouseHover || isActiveDrag) {
           queuePointer(event);
         }
       });
 
       root.addEventListener("pointerleave", () => {
-        if (activePointerId === null) resetTilt();
+        if (activePointerId === null) {
+          resetTilt();
+        }
       });
 
       function endPointer(event) {
         if (event.pointerId !== activePointerId) return;
+
+        // Apply the last queued position before clearing it.
+        if (pendingPointer) {
+          if (animationId !== null) {
+            cancelAnimationFrame(animationId);
+          }
+
+          processPointer();
+        }
 
         activePointerId = null;
 
@@ -603,30 +741,43 @@
 
         let target;
 
-        if (event.key === "Home") {
-          target = frames.findIndex(frame => frame.state === "loaded");
-        } else if (event.key === "End") {
-          target = frames.length - 1;
+        switch (event.key) {
+          case "Home":
+            target = frames.findIndex(
+              frame => frame.state === "loaded"
+            );
+            break;
 
-          while (target >= 0 && frames[target].state !== "loaded") {
-            target--;
-          }
-        } else if (
-          event.key === "ArrowRight" ||
-          event.key === "ArrowLeft"
-        ) {
-          const direction = event.key === "ArrowRight" ? 1 : -1;
-          target = currentIndex + direction;
+          case "End":
+            target = frames.length - 1;
 
-          while (
-            target >= 0 &&
-            target < frames.length &&
-            frames[target].state !== "loaded"
-          ) {
-            target += direction;
+            while (
+              target >= 0 &&
+              frames[target].state !== "loaded"
+            ) {
+              target--;
+            }
+            break;
+
+          case "ArrowLeft":
+          case "ArrowRight": {
+            const direction =
+              event.key === "ArrowRight" ? 1 : -1;
+
+            target = currentIndex + direction;
+
+            while (
+              target >= 0 &&
+              target < frames.length &&
+              frames[target].state !== "loaded"
+            ) {
+              target += direction;
+            }
+            break;
           }
-        } else {
-          return;
+
+          default:
+            return;
         }
 
         event.preventDefault();
@@ -637,7 +788,20 @@
       });
 
       reducedMotion.addEventListener("change", resetTilt);
-      window.addEventListener("blur", resetTilt);
+
+      window.addEventListener("blur", () => {
+        const pointerId = activePointerId;
+        activePointerId = null;
+
+        if (
+          pointerId !== null &&
+          root.hasPointerCapture(pointerId)
+        ) {
+          root.releasePointerCapture(pointerId);
+        }
+
+        resetTilt();
+      });
 
       loadViewer();
     })();
