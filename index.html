@@ -2,59 +2,62 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Wolf SaByter - Dynamic 3D Interactive Turntable Asset</title>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
+  <title>Wolf SaByter — Interactive Turntable</title>
+
   <style>
     * {
       box-sizing: border-box;
-      margin: 0;
-      padding: 0;
     }
 
     body {
-      background-color: #090909;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      margin: 0;
       min-height: 100vh;
-      overflow: hidden;
-      font-family: 'Courier New', Courier, monospace;
-      touch-action: none;
-      user-select: none;
-      -webkit-user-select: none;
+      min-height: 100svh;
+      padding: 20px;
+      display: grid;
+      place-items: center;
+      background: #090909;
+      font-family: "Courier New", Courier, monospace;
     }
 
     .scene-container {
+      width: min(100%, 360px);
       perspective: 1200px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
     }
 
     .TerminalAvatarWidget {
-      width: 360px;
+      position: relative;
+      width: 100%;
       height: 480px;
-      background: linear-gradient(135deg, #121212 0%, #1c1c1c 100%);
-      border: 1px solid #77736D;
-      border-radius: 8px;
       padding: 20px;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: space-between;
-      position: relative;
+      gap: 16px;
+      background: linear-gradient(135deg, #121212, #1c1c1c);
+      border: 1px solid #77736d;
+      border-radius: 8px;
       transform-style: preserve-3d;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), 0 0 15px rgba(214, 154, 66, 0.08);
-      transition: transform 0.1s cubic-bezier(0.2, 0, 0.2, 1);
-      will-change: transform;
+      box-shadow:
+        0 20px 40px rgba(0, 0, 0, 0.8),
+        0 0 15px rgba(214, 154, 66, 0.08);
+      transition: transform 100ms cubic-bezier(0.2, 0, 0.2, 1);
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
     }
 
     .box-header {
-      width: 100%;
       display: flex;
       justify-content: space-between;
-      color: #77736D;
-      font-size: 11px;
+      flex-wrap: wrap;
+      gap: 8px;
+      color: #99958f;
+      font-size: 10px;
       letter-spacing: 1px;
       text-transform: uppercase;
       transform: translateZ(20px);
@@ -62,39 +65,56 @@
     }
 
     .system-status {
-      color: #C51F30;
+      color: #d69a42;
       animation: pulse 2s infinite;
     }
 
+    .system-status[data-state="ready"] {
+      color: #e04354;
+    }
+
+    .system-status[data-state="error"] {
+      color: #ff6978;
+      animation: none;
+    }
+
     .image-viewport {
-      width: 100%;
-      height: 350px;
-      border: 1px dashed #77736D;
-      background-color: #0d0d0d;
-      border-radius: 4px;
       position: relative;
-      transform: translateZ(10px);
-      background-image: radial-gradient(circle at 50% 50%, rgba(197, 31, 48, 0.12) 0%, transparent 70%);
+      flex: 1;
+      min-height: 0;
+      width: 100%;
       overflow: hidden;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      display: grid;
+      place-items: center;
+      border: 1px dashed #77736d;
+      border-radius: 4px;
+      background:
+        radial-gradient(
+          circle at center,
+          rgba(197, 31, 48, 0.12),
+          transparent 70%
+        ),
+        #0d0d0d;
+      transform: translateZ(10px);
+      cursor: ew-resize;
+    }
+
+    .image-viewport:focus-visible {
+      outline: 2px solid #d69a42;
+      outline-offset: 4px;
     }
 
     .sculpture-asset {
       position: absolute;
-      top: 50%;
-      left: 50%;
-      max-width: 85%;
-      max-height: 85%;
-      width: auto;
-      height: auto;
+      inset: 0;
+      width: 85%;
+      height: 85%;
+      margin: auto;
       object-fit: contain;
-      transform: translate(-50%, -50%) translateZ(25px);
-      pointer-events: none;
       opacity: 0;
       visibility: hidden;
-      will-change: opacity;
+      pointer-events: none;
+      -webkit-user-drag: none;
     }
 
     .sculpture-asset.active {
@@ -104,158 +124,523 @@
 
     .loading-overlay {
       position: absolute;
-      color: #D69A42;
+      z-index: 2;
+      max-width: 90%;
+      color: #d69a42;
       font-size: 11px;
+      line-height: 1.6;
       letter-spacing: 1px;
-      z-index: 10;
+      text-align: center;
       pointer-events: none;
     }
 
+    .loading-overlay[hidden] {
+      display: none;
+    }
+
     .box-footer {
-      width: 100%;
       display: flex;
       flex-direction: column;
-      gap: 4px;
-      color: #D69A42;
+      gap: 5px;
+      color: #d69a42;
       font-size: 10px;
       text-align: right;
-      letter-spacing: 1.5px;
+      letter-spacing: 1px;
+      overflow-wrap: anywhere;
       transform: translateZ(20px);
       pointer-events: none;
     }
 
-    .angle-tag {
-      color: #77736D;
+    .angle-tag,
+    .interaction-hint {
+      color: #99958f;
       font-size: 9px;
     }
 
     @keyframes pulse {
-      0% { opacity: 0.6; }
+      0%, 100% { opacity: 0.6; }
       50% { opacity: 1; }
-      100% { opacity: 0.6; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .TerminalAvatarWidget {
+        transition: none;
+      }
+
+      .system-status {
+        animation: none;
+      }
     }
   </style>
 </head>
-<body>
 
-  <div class="scene-container">
+<body>
+  <div class="scene-container" id="wolfViewer">
     <div class="TerminalAvatarWidget" id="interactiveCard">
-      
+
       <div class="box-header">
         <span>ASSET // WOLF_SABYTER</span>
-        <span class="system-status" id="coreStatus">● INITIALIZING</span>
+        <span
+          class="system-status"
+          id="coreStatus"
+          data-state="loading"
+          role="status"
+        >● INITIALIZING</span>
       </div>
 
-      <div class="image-viewport" id="viewport">
-        <div class="loading-overlay" id="loadingText">LOADING FRAMES...</div>
+      <div
+        class="image-viewport"
+        id="viewport"
+        tabindex="0"
+        role="slider"
+        aria-label="Wolf SaByter viewing angle"
+        aria-orientation="horizontal"
+        aria-valuemin="1"
+        aria-valuemax="1"
+        aria-valuenow="1"
+        aria-valuetext="Loading frames"
+        aria-disabled="true"
+        aria-busy="true"
+        aria-describedby="interactionHint"
+      >
+        <div class="loading-overlay" id="loadingText">
+          LOADING FRAMES...
+        </div>
       </div>
 
       <div class="box-footer">
-        <span class="angle-tag" id="angleLabel">FRAME: --- // VIEW: INITIALIZING</span>
-        <span id="coordinatesDisplay">SYS.LOC: NY_BRONX_26 // SYNCING</span>
+        <span class="angle-tag" id="angleLabel">
+          FRAME: --- // VIEW: INITIALIZING
+        </span>
+
+        <span id="coordinatesDisplay">
+          SYS.LOC: NY_BRONX_26 // SYNCING
+        </span>
+
+        <span class="interaction-hint" id="interactionHint">
+          HOVER / DRAG TO ROTATE · ← → WHEN FOCUSED
+        </span>
       </div>
 
     </div>
   </div>
 
   <script>
-    const card = document.getElementById('interactiveCard');
-    const viewport = document.getElementById('viewport');
-    const coordsDisplay = document.getElementById('coordinatesDisplay');
-    const angleLabel = document.getElementById('angleLabel');
-    const coreStatus = document.getElementById('coreStatus');
-    const loadingText = document.getElementById('loadingText');
+    (() => {
+      "use strict";
 
-    const BASE_PATH = 'clean_wolf_frames/';
-    
-    let imageElements = [];
-    let exactFiles = [];
-    let currentActiveIndex = 0;
-    let isInitialized = false;
+      const root = document.getElementById("wolfViewer");
+      const card = root.querySelector("#interactiveCard");
+      const viewport = root.querySelector("#viewport");
+      const coordsDisplay = root.querySelector("#coordinatesDisplay");
+      const angleLabel = root.querySelector("#angleLabel");
+      const coreStatus = root.querySelector("#coreStatus");
+      const loadingText = root.querySelector("#loadingText");
 
-    async function loadViewer() {
-      try {
-        // Fetch the auto-generated manifest of all frames
-        const response = await fetch('manifest.json');
-        exactFiles = await response.json();
+      const BASE_PATH = "clean_wolf_frames/";
+      const MANIFEST_PATH = "manifest.json";
+      const LOAD_CONCURRENCY = 6;
+      const IMAGE_TIMEOUT = 20000;
 
-        let loadedCount = 0;
-
-        exactFiles.forEach((filename, i) => {
-          const img = document.createElement('img');
-          img.src = `${BASE_PATH}${filename}`;
-          img.alt = filename;
-          img.className = `sculpture-asset ${i === 0 ? 'active' : ''}`;
-
-          img.onload = () => {
-            loadedCount++;
-            if (loadedCount === 1) {
-              if (loadingText) loadingText.remove();
-              coreStatus.innerText = '● CORE_CONNECTED';
-              coreStatus.style.color = '#C51F30';
-              isInitialized = true;
-              updateDisplay(0);
-            }
-          };
-
-          viewport.appendChild(img);
-          imageElements.push(img);
-        });
-
-      } catch (err) {
-        console.error('Manifest load error:', err);
-        if (loadingText) loadingText.innerText = 'MANIFEST SYNC FAILED';
-        coreStatus.innerText = '● ERROR';
-      }
-    }
-
-    function updateDisplay(index) {
-      if (!isInitialized || imageElements.length === 0) return;
-
-      imageElements[currentActiveIndex].classList.remove('active');
-      currentActiveIndex = index;
-      imageElements[currentActiveIndex].classList.add('active');
-
-      const currentFilename = exactFiles[currentActiveIndex];
-      const label = currentFilename.replace(/^\w+_/, '').replace(/\.png$/, '').replace(/_/g, ' ').toUpperCase();
-
-      angleLabel.innerText = `FRAME: ${String(currentActiveIndex + 1).padStart(3, '0')} // VIEW: ${label}`;
-      coordsDisplay.innerText = `SYS.LOC: NY_BRONX_26 // INDEX: ${currentActiveIndex + 1} / ${imageElements.length}`;
-    }
-
-    function handlePointerMove(e) {
-      if (!isInitialized) return;
-
-      const rect = card.getBoundingClientRect();
-      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-
-      const normX = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-      const normY = Math.max(-1, Math.min(1, ((clientY - rect.top) / rect.height) * 2 - 1));
-
-      const tiltX = -normY * 6;
-      const tiltY = (normX - 0.5) * 12;
-      card.style.transform = `rotateX(${tiltX.toFixed(1)}deg) rotateY(${tiltY.toFixed(1)}deg)`;
-
-      const targetIndex = Math.min(
-        imageElements.length - 1,
-        Math.floor(normX * imageElements.length)
+      const reducedMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)"
       );
 
-      if (targetIndex !== currentActiveIndex) {
-        updateDisplay(targetIndex);
+      let frames = [];
+      let currentIndex = -1;
+      let requestedIndex = 0;
+      let loadedCount = 0;
+      let failedCount = 0;
+      let loadingComplete = false;
+      let activePointerId = null;
+      let animationId = null;
+      let pendingPointer = null;
+
+      function setStatus(text, state) {
+        coreStatus.textContent = text;
+        coreStatus.dataset.state = state;
       }
-    }
 
-    window.addEventListener('mousemove', handlePointerMove);
-    window.addEventListener('touchmove', handlePointerMove);
+      function getFrameLabel(filename) {
+        return filename
+          .replace(/\.[^.]+$/, "")
+          .replace(/^wolf[_-]/i, "")
+          .replace(/[_-]+/g, " ")
+          .trim()
+          .toUpperCase();
+      }
 
-    window.addEventListener('mouseleave', () => {
-      card.style.transform = `rotateX(0deg) rotateY(0deg)`;
-    });
+      function updateProgress() {
+        if (currentIndex < 0) {
+          coordsDisplay.textContent =
+            `SYS.LOC: NY_BRONX_26 // LOADED: ${loadedCount} / ${frames.length}`;
+          return;
+        }
 
-    loadViewer();
+        const progress = loadingComplete
+          ? `READY: ${loadedCount}/${frames.length}` +
+            (failedCount ? ` // FAILED: ${failedCount}` : "")
+          : `LOADED: ${loadedCount}/${frames.length}`;
+
+        coordsDisplay.textContent =
+          `SYS.LOC: NY_BRONX_26 // INDEX: ${currentIndex + 1}` +
+          ` / ${frames.length} // ${progress}`;
+      }
+
+      function showFrame(index) {
+        const frame = frames[index];
+
+        if (!frame || frame.state !== "loaded") return;
+
+        if (index !== currentIndex) {
+          if (currentIndex >= 0) {
+            frames[currentIndex].element.classList.remove("active");
+          }
+
+          frame.element.classList.add("active");
+          currentIndex = index;
+        }
+
+        const label = getFrameLabel(frame.filename);
+
+        angleLabel.textContent =
+          `FRAME: ${String(index + 1).padStart(3, "0")}` +
+          ` // VIEW: ${label}`;
+
+        viewport.setAttribute("aria-valuenow", String(index + 1));
+        viewport.setAttribute(
+          "aria-valuetext",
+          `Frame ${index + 1} of ${frames.length}: ${label}`
+        );
+        viewport.setAttribute("aria-disabled", "false");
+
+        loadingText.hidden = true;
+        updateProgress();
+      }
+
+      function nearestLoadedIndex(target) {
+        let bestIndex = -1;
+        let bestDistance = Infinity;
+
+        frames.forEach((frame, index) => {
+          if (frame.state !== "loaded") return;
+
+          const distance = Math.abs(index - target);
+
+          if (distance < bestDistance) {
+            bestDistance = distance;
+            bestIndex = index;
+          }
+        });
+
+        return bestIndex;
+      }
+
+      function requestFrame(index) {
+        if (!frames.length) return;
+
+        requestedIndex = Math.max(
+          0,
+          Math.min(frames.length - 1, index)
+        );
+
+        if (frames[requestedIndex].state === "loaded") {
+          showFrame(requestedIndex);
+        } else if (
+          currentIndex < 0 ||
+          frames[requestedIndex].state === "failed"
+        ) {
+          const fallback = nearestLoadedIndex(requestedIndex);
+          if (fallback >= 0) showFrame(fallback);
+        }
+        // Otherwise preserve the current image until the target is ready.
+      }
+
+      function loadFrame(frame, index) {
+        return new Promise((resolve) => {
+          const img = frame.element;
+          let settled = false;
+
+          const finish = (success) => {
+            if (settled) return;
+            settled = true;
+
+            clearTimeout(timer);
+            img.onload = null;
+            img.onerror = null;
+
+            frame.state = success ? "loaded" : "failed";
+
+            if (success) {
+              loadedCount++;
+
+              if (currentIndex < 0 || requestedIndex === index) {
+                showFrame(index);
+              }
+
+              setStatus("● CORE_CONNECTED", "ready");
+            } else {
+              failedCount++;
+              requestFrame(requestedIndex);
+            }
+
+            updateProgress();
+            resolve();
+          };
+
+          const timer = setTimeout(
+            () => finish(false),
+            IMAGE_TIMEOUT
+          );
+
+          img.onload = () => finish(true);
+          img.onerror = () => finish(false);
+          img.src = BASE_PATH + frame.filename
+            .split("/")
+            .map(encodeURIComponent)
+            .join("/");
+        });
+      }
+
+      async function loadViewer() {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 15000);
+
+        try {
+          const response = await fetch(MANIFEST_PATH, {
+            signal: controller.signal
+          });
+
+          if (!response.ok) {
+            throw new Error(`Manifest HTTP ${response.status}`);
+          }
+
+          const filenames = await response.json();
+
+          if (
+            !Array.isArray(filenames) ||
+            filenames.length === 0 ||
+            !filenames.every(
+              filename =>
+                typeof filename === "string" &&
+                filename.trim().length > 0
+            )
+          ) {
+            throw new Error(
+              "Manifest must be a nonempty array of filenames."
+            );
+          }
+
+          clearTimeout(timeout);
+
+          frames = filenames.map((filename) => {
+            const img = document.createElement("img");
+
+            img.className = "sculpture-asset";
+            img.alt = "";
+            img.draggable = false;
+            img.setAttribute("aria-hidden", "true");
+
+            viewport.appendChild(img);
+
+            return {
+              filename,
+              element: img,
+              state: "pending"
+            };
+          });
+
+          viewport.setAttribute(
+            "aria-valuemax",
+            String(frames.length)
+          );
+
+          let nextIndex = 0;
+
+          async function worker() {
+            while (nextIndex < frames.length) {
+              const index = nextIndex++;
+              await loadFrame(frames[index], index);
+            }
+          }
+
+          await Promise.all(
+            Array.from(
+              { length: Math.min(LOAD_CONCURRENCY, frames.length) },
+              () => worker()
+            )
+          );
+
+          loadingComplete = true;
+          viewport.setAttribute("aria-busy", "false");
+
+          if (!loadedCount) {
+            throw new Error("No frames could be loaded.");
+          }
+
+          requestFrame(requestedIndex);
+
+          setStatus(
+            failedCount ? "● PARTIAL_SYNC" : "● CORE_CONNECTED",
+            "ready"
+          );
+
+          updateProgress();
+        } catch (error) {
+          console.error("Viewer initialization failed:", error);
+
+          loadingText.hidden = false;
+          loadingText.textContent =
+            "SYNC FAILED — CHECK MANIFEST / FRAME PATHS";
+
+          setStatus("● ERROR", "error");
+          viewport.setAttribute("aria-busy", "false");
+          viewport.setAttribute("aria-disabled", "true");
+
+          coordsDisplay.textContent =
+            "SYS.LOC: NY_BRONX_26 // SYNC FAILED";
+        } finally {
+          clearTimeout(timeout);
+        }
+      }
+
+      function processPointer() {
+        animationId = null;
+
+        if (!pendingPointer || !frames.length) return;
+
+        // Measure the untransformed wrapper, not the tilting card.
+        const rect = root.getBoundingClientRect();
+
+        const x = Math.max(
+          0,
+          Math.min(1, (pendingPointer.x - rect.left) / rect.width)
+        );
+
+        const y = Math.max(
+          -1,
+          Math.min(
+            1,
+            ((pendingPointer.y - rect.top) / rect.height) * 2 - 1
+          )
+        );
+
+        if (!reducedMotion.matches) {
+          card.style.transform =
+            `rotateX(${(-y * 6).toFixed(1)}deg) ` +
+            `rotateY(${((x - 0.5) * 12).toFixed(1)}deg)`;
+        }
+
+        requestFrame(
+          Math.min(frames.length - 1, Math.floor(x * frames.length))
+        );
+      }
+
+      function queuePointer(event) {
+        pendingPointer = {
+          x: event.clientX,
+          y: event.clientY
+        };
+
+        if (animationId === null) {
+          animationId = requestAnimationFrame(processPointer);
+        }
+      }
+
+      function resetTilt() {
+        if (animationId !== null) {
+          cancelAnimationFrame(animationId);
+          animationId = null;
+        }
+
+        pendingPointer = null;
+        card.style.transform = "rotateX(0deg) rotateY(0deg)";
+      }
+
+      root.addEventListener("pointerdown", (event) => {
+        if (!event.isPrimary) return;
+        if (event.pointerType === "mouse" && event.button !== 0) return;
+
+        activePointerId = event.pointerId;
+        root.setPointerCapture(event.pointerId);
+        viewport.focus({ preventScroll: true });
+        queuePointer(event);
+      });
+
+      root.addEventListener("pointermove", (event) => {
+        if (!event.isPrimary) return;
+
+        const mouseHover =
+          event.pointerType === "mouse" && activePointerId === null;
+
+        if (mouseHover || event.pointerId === activePointerId) {
+          queuePointer(event);
+        }
+      });
+
+      root.addEventListener("pointerleave", () => {
+        if (activePointerId === null) resetTilt();
+      });
+
+      function endPointer(event) {
+        if (event.pointerId !== activePointerId) return;
+
+        activePointerId = null;
+
+        if (root.hasPointerCapture(event.pointerId)) {
+          root.releasePointerCapture(event.pointerId);
+        }
+
+        resetTilt();
+      }
+
+      root.addEventListener("pointerup", endPointer);
+      root.addEventListener("pointercancel", endPointer);
+      root.addEventListener("lostpointercapture", endPointer);
+
+      viewport.addEventListener("keydown", (event) => {
+        if (currentIndex < 0) return;
+
+        let target;
+
+        if (event.key === "Home") {
+          target = frames.findIndex(frame => frame.state === "loaded");
+        } else if (event.key === "End") {
+          target = frames.length - 1;
+
+          while (target >= 0 && frames[target].state !== "loaded") {
+            target--;
+          }
+        } else if (
+          event.key === "ArrowRight" ||
+          event.key === "ArrowLeft"
+        ) {
+          const direction = event.key === "ArrowRight" ? 1 : -1;
+          target = currentIndex + direction;
+
+          while (
+            target >= 0 &&
+            target < frames.length &&
+            frames[target].state !== "loaded"
+          ) {
+            target += direction;
+          }
+        } else {
+          return;
+        }
+
+        event.preventDefault();
+
+        if (target >= 0 && target < frames.length) {
+          requestFrame(target);
+        }
+      });
+
+      reducedMotion.addEventListener("change", resetTilt);
+      window.addEventListener("blur", resetTilt);
+
+      loadViewer();
+    })();
   </script>
-
 </body>
 </html>
